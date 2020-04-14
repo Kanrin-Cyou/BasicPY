@@ -81,8 +81,8 @@ oldboy.enroll(s2)
 oldboy.hire(t1)
 oldboy.hire(t2)
 
-print(oldboy.students)
-print(oldboy.staffs)
+oldboy.students
+oldboy.staffs
  
 oldboy.staffs[0].teach()
 # for stu in school.students:
