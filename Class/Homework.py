@@ -32,9 +32,10 @@ class school(object):
         print('[{}]在[{}]开课了,[{}]学费[{}]'.format(course_obj.name,self.name,course_obj.period,course_obj.tuition))
         self.courses.append(course_obj)
 
-    def creat_classes(self,classes_obj):
-        print('最新消息：[{}][{}][{}]班由[{}]老师授课，速来报名'.format(self.name,classes_obj.course,classes_obj.name,classes_obj.teacher))
+    def creat_classes(self,classes_obj,teacher_obj):
+        print('最新消息：[{}][{}][{}]班由[{}]老师授课，速来报名'.format(self.name,classes_obj.course,classes_obj.name,teacher_obj.name))
         self.classes.append(classes_obj)
+        teacher_obj.teach_class(classes_obj)
 
     def staff_enroll(self,staff_obj):
         '''注册'''
@@ -43,8 +44,18 @@ class school(object):
 
     def student_enroll(self,student_obj):
         '''注册'''
-        print("\033[32;1m[%s]:欢迎[%s]加入[%s][%s]班,本校有[%s]名学生.\033[0m " %(self.name,student_obj.name,student_obj.coursename,student_obj.classesname,len(self.students)+1))
+        print("\033[32;1m[%s]:欢迎[%s]加入本校\033[0m " %(self.name,student_obj.name))
         self.students.append(student_obj)
+
+    def student_course_enroll(self,student_obj,classes_obj):
+        if student_obj in self.students:
+            if classes_obj in self.classes:
+                classes_obj.student_enroll(self,student_obj)
+            else:
+                print('[%s]，[%s] dont have [%s]'%(student_obj.name,self.name,classes_obj.name))
+        else:
+            print('[%s] is not registrated yet'%(student_obj.name))
+
 
     # def __del__(self):
     #     '''析构方法'''
@@ -57,12 +68,19 @@ class course(object):
         self.period = period
         self.tuition = tuition
 
-class classes(object):
-
-    def __init__(self,name,obj_course,obj_teacher):
+class classes(course):
+    
+    def __init__(self,name,obj_course):
         self.name = name
         self.course = obj_course.name
-        self.teacher = obj_teacher.name
+        self.tuition = obj_course.tuition
+        self.period = obj_course.period
+        self.students = []
+
+    def student_enroll(self,school_obj,student_obj):
+        '''注册'''
+        print("\033[32;1m[%s]:欢迎[%s]加入[%s][%s]班级\033[0m " %(school_obj.name,student_obj.name,self.course,self.name))
+        self.students.append(student_obj)    
 
 class school_member(object):
     
@@ -80,23 +98,30 @@ class teacher(school_member):
         school_obj.staff_enroll(self)
 
 
+    def teach_class(self,classes_obj):
+        self.classes=classes_obj
+        #print('[{}]来教[{}]'.format(self.name,classes_obj.name))
+
+    def student_list(self):
+        for item in self.classes.students:
+            print(item.name)
+
+
 class student(school_member):
 # 6.1 学员视图， 可以注册， 交学费， 选择班级，
-    def __init__(self,name,age,sex,classes_obj,school_obj):
+    def __init__(self,name,age,sex):
         super(student,self).__init__(name,age,sex)
-        self.classesname = classes_obj.name
-        self.coursename = classes_obj.course
-
-    def registration(school_obj):
-        self.school = school_obj.name
+    
+    def registration(self,school_obj):
+        self.school = school_obj
         school_obj.student_enroll(self)
 
-    def select_class(classes_obj):
-        self.classesname = classes_obj.name
-        classes_obj.student_enroll(self)
+    def select_class(self,classes_obj):
+        self.classes = classes_obj
+        self.school.student_course_enroll(self,classes_obj)
 
-#    def pay_tuition(self):
-        
+    def pay_tuition(self):
+        print('[{}] paid [{}] for class[{}]'.format(self.name,self.classes.tuition,self.classes.name))
 
 beijing = school('北京老男孩学校','Beijing')
 shanghai = school('上海老男孩学校','Shanghai')
@@ -112,16 +137,19 @@ shanghai.creat_courses(go)
 alex = teacher('alex',34,'M','Python',beijing)
 ben = teacher('ben',20,'M','Go',shanghai)
 
-Apple = classes('14期',py,alex)
-Butter = classes('14期',go,ben)
+Apple = classes('Python 14期',py)
+Butter = classes('Go 14期',go)
 
-beijing.creat_classes(Apple)
-shanghai.creat_classes(Butter)
+beijing.creat_classes(Apple,alex)
+shanghai.creat_classes(Butter,ben)
 
-t1 = student("ChenRonghua",24,'M',Apple,beijing)
-t2 = student("SanJiang", 26,'M',Apple,beijing)
+t1 = student("ChenRonghua",24,'M')
+t2 = student("SanJiang", 26,'M')
+t1.registration(beijing)
+t1.select_class(Apple)
+t1.pay_tuition()
 
-
+alex.student_list()
 
 
 
