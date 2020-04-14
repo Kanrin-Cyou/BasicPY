@@ -97,7 +97,6 @@ class teacher(school_member):
         self.school = school_obj.name
         school_obj.staff_enroll(self)
 
-
     def teach_class(self,classes_obj):
         self.classes=classes_obj
         #print('[{}]来教[{}]'.format(self.name,classes_obj.name))
