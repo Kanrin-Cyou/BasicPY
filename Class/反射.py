@@ -30,7 +30,7 @@ if hasattr(d,choice):
     attr = getattr(d,choice) #d里面对应的东西,可以是name，eat
     setattr(d,choice,"Ronghua") #修改名字
 else:
-    setattr(d,choice,bulk) #类, choice(输入talk) = bulk()
+    setattr(d,choice,bulk) #类, choice(输入talk) = bulk() 将bulk函数导入class中
     d.talk(d)
     # setattr(d,choice,22)
     # print(getattr(d,choice))
