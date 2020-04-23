@@ -1,5 +1,6 @@
 import socket , os ,time
-server = socket.socket() #声明socket类型，同时生成socket连接对象
+server = socket.socket() #声明socket类型，同时生成socket连接对象,实例化
+
 server.bind(('localhost',9998)) #IP,绑定需要监听的端口
 
 server.listen() #监听数量

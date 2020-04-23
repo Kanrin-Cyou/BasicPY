@@ -1,7 +1,7 @@
 import socket
 
 client = socket.socket() #声明socket类型，同时生成socket连接对象
-client.connect(('localhost',6969))
+client.connect(('localhost',9997))
 
 print('start sending')
 while True:

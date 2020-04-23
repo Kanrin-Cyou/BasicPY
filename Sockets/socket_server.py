@@ -2,7 +2,7 @@ import socket
 
 server = socket.socket()
 
-server.bind(('localhost',6969)) #IP,绑定需要监听的端口
+server.bind(('localhost',9997)) #IP,绑定需要监听的端口
 server.listen(2) #监听数量
 
 print('waiting...')

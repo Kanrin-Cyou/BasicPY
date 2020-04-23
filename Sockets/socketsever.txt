@@ -1,0 +1,39 @@
+The socketserver module simplifies the task of writing network servers.
+socketserver一共有这么几种类型
+  class socketserver.TCPServer(server_address, RequestHandlerClass, bind_and_activate=True)
+This uses the Internet TCP protocol, which provides for continuous streams of data between the client and server. 
+  class socketserver.UDPServer(server_address, RequestHandlerClass, bind_and_activate=True)
+This uses datagrams, which are discrete packets of information that may arrive out of order or be lost while in transit. The parameters are the same as for TCPServer.
+  class socketserver.UnixStreamServer(server_address, RequestHandlerClass, bind_and_activate=True)
+  class socketserver.UnixDatagramServer(server_address, RequestHandlerClass,bind_and_activate=True)
+
+There are five classes in an inheritance diagram, four of which represent synchronous servers of four types:
+
++------------+
+| BaseServer |
++------------+
+      |
+      v
++-----------+        +------------------+
+| TCPServer |------->| UnixStreamServer |
++-----------+        +------------------+
+      |
+      v
++-----------+        +--------------------+
+| UDPServer |------->| UnixDatagramServer |
++-----------+        +--------------------+
+
+First, you must create a [request handler class] by subclassing 
+你必须自己创建一个请求处理类，继承BaseRequestHandler,并且还有重写父类里的handle方法
+handle用于处理每一个请求
+the [BaseRequestHandlerclass] and overriding its handle() method; this method will process incoming requests.
+
+Second, you must instantiate实例化 one of the server classes, passing it the server’s address and the request handler class.
+你必须实例化TCPServer,并且产地server ip 和 你上面创建的请求处理类，给这个TCPServer
+
+Then call the handle_request() orserve_forever() method of the server object to process one or many requests.
+server.handle_request() #只处理一个请求
+serverserve_forever() 处理多个请求，永远执行
+Finally, call server_close() to close the socket.
+
+
