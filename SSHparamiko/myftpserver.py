@@ -1,8 +1,8 @@
-import SocketServer
+import socketserver
 import account
-import os,sys,commands
+import os,sys
 
-class MyTCPHandler(SocketServer.BaseRequestHandler):
+class MyTCPHandler(socketserver.BaseRequestHandler):
     """
     The RequestHandler class for our server.
 
@@ -10,156 +10,94 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
     override the handle() method to implement communication to the
     client.
     """
+
+    func_dic = {
+            'get' : 'get_file',
+            'put' : 'put_file',
+            'exit': 'exit',
+            'ls'  : 'list_file',
+            'cd'  :  'switch_dir',
+            'del' :  'delete'
+        }
+
     exit_flag = False
 
     def handle(self):
         # self.request is the TCP socket connected to the client
 
         while not self.exit_flag:
-            msg = self.request.recv(1024)
-            if not msg:
-                break
-            msg_parse = msg.split("|")
-            msg_type = msg_parse[0]
-            if hasattr(self,msg_type):
-                #print "---allowcate msg to method %s ---" % msg_type,msg_parse
-                func = getattr(self,msg_type)
-                func(msg_parse)
+            
+            msg = self.request.recv(1024).decode()
+            print(msg)
+            cmd_parse = msg.split()
+            msg_type = cmd_parse[0]
+
+            #print 'msg_type::',msg_type
+            if msg_type in self.func_dic:
+                func = getattr(self,self.func_dic[msg_type])
+                func(cmd_parse)
             else:
-                print("--\033[31;1mWrong msg type:%s\033[0m--" % msg_type)
-    
-    def ftp_authentication(self,msg):
-        #print '----auth----'
-        auth_res = False
-        if len(msg) == 3:
-            msg_type,username,passwd = msg
-            if account.accounts.has_key(username):
-                if account.accounts[username]['passwd'] == passwd:
-                    auth_res = True
-                    self.login_user = username
-                    self.cur_path = '%s/%s' %(os.path.dirname(__file__),account.accounts[username]['home'])
-                    self.home_path = '%s/%s' %(os.path.dirname(__file__),account.accounts[username]['home'])
+                msg = "Invalid instruction,type [help] to see available cmd list"
+                self.std_send(msg)
+
+    def std_send(self,msg,isfile=False):
+
+        if isfile == True:
+            f = open(msg,'rb')
+            size = os.stat(msg).st_size
+
+        else:
+            f = msg.encode()
+            size = len(msg)
+
+        self.request.send(str(size).encode()) #send filesize to client
+        self.request.recv(1024) #wait client to confirm
+        
+        if isfile == True: 
+            size_left = size
+            #print "--size left:",size_left
+            while size_left > 0:
+                if size_left < 1024:
+                    self.request.send(f.read(size_left))
+                    size_left = 0
                 else:
-                    #print '---wrong passwd---'
-                    auth_res = False
-            else:
-                auth_res == False
+                    self.request.send(f.read(1024))
+                    size_left -= 1024
         else:
-            auth_res == False
+            self.request.send(f)
+        self.request.recv(1024) #client ack
 
-        if auth_res:
-            msg = "%s::success" % msg_type
-            print '\033[32;1muser:%s has passed authentication!\033[0m' % username
+        if isfile == True:
+            f.close()
+        print('Sent')
 
+    def std_recv(self):
+        #need to send cmd before this function
+        self.request.recv(1024)
+        self.request.send(b'ready')
+        print(self.request.recv(1024).decode())
+
+    def get_file(self,msg):
+        filename = msg[1]
+        print(filename)
+        if os.path.isfile(filename):
+            self.std_send(filename,True)
         else:
-            msg = "%s::failed" % msg_type
-        self.request.send(msg)
-    
-    def has_privilege(self,path):
-        abs_path = os.path.abspath(path)
-        if abs_path.startswith(self.home_path):
-            return True
-        else:
-            return  False
-    
-    def file_transfer(self,msg):
-        #print msg
-        transfer_type = msg[1]
-        filename = '%s/%s' %(self.cur_path,msg[2])
-        self.has_privilege(filename)
-        if transfer_type == 'get': #download from server
-            if os.path.isfile(filename) and self.has_privilege(filename):
+            self.request.send(b'error')
 
-                file_size = os.path.getsize(filename)
-                confirm_msg = "file_transfer::get_file::send_ready::%s" % file_size
-                self.request.send(confirm_msg)
-                client_confirm_msg = self.request.recv(1024)
-                if client_confirm_msg == "file_transfer::get_file::recv_ready":
-                    f = file(filename,'rb')
-                    size_left = file_size
-                    #print "--size left:",size_left
-                    while size_left >0:
-                        if size_left < 1024:
-                            self.request.send(f.read(size_left))
-                            size_left = 0
-                        else:
-                            self.request.send(f.read(1024))
-                            size_left -= 1024
-
-                    else:
-                        print "send file done...."
-            else:#file doesn't exist
-                err_msg = "file_transfer::get_file::error::file does not exist or is a directory"
-                self.request.send(err_msg)
-        elif transfer_type == 'put':#upload file to server
-            #print '-->', msg
-            filename,file_size = msg[-2],int(msg[-1])
-            filename = '%s/%s' %(self.cur_path,filename)
-            print 'filename:',filename
-            if os.path.isfile(filename):
-                f = file('%s.0' % (filename),'wb')
-            else:
-                f = file("%s" %(filename) ,'wb')
-            confirm_msg = "file_transfer::put_file::recv_ready"
-            self.request.send(confirm_msg)
-            recv_size = 0
-            while not recv_size == file_size:
-                data = self.request.recv(1024)
-                recv_size += len(data)
-                f.write(data)
-            else:
-                print "--\033[32;1mReceiving file:%s done\033[0m--" %(filename)
-                #print len(file_content), file_content[-100:]
-                f.close()
-    
-    def delete_file(self,msg):
-        print '-->delete:',msg
-        file_list = msg[1].split()
-        res_list = []
-        for i in file_list:
-            abs_file_path = "%s/%s" %(self.cur_path,i)
-            cmd_res = commands.getstatusoutput("rm -rf %s"% abs_file_path)[1]
-
+    def put_file(self,msg):
+        pass
     def list_file(self,msg):
-        '''display file list'''
-        home_prefix = account.accounts[self.login_user]['home']
-        cmd = "cd %s;ls -lh %s"% (self.cur_path,' '.join(msg[1:]))
-        file_list= os.popen(cmd).read()
-        confirm_msg = "message_transfer::ready::%s" % len(file_list)
-        self.request.send(confirm_msg)
-        confirm_from_client = self.request.recv(100)
-        if confirm_from_client == "message_transfer::ready::client":
-            self.request.sendall(file_list)
-    
+        pass
     def switch_dir(self,msg):
-        #print '---switch dir:', msg
-        switch_res = ""
-        msg = msg[-1].split()
-        if len(msg) ==1:# means no dir follows cd cmd, go back to home directory
-            self.cur_path = self.home_path
-            relative_path = self.cur_path.split(self.home_path)[-1]
-            switch_res = "switch_dir::ok::%s" % relative_path
-        elif len(msg) == 2:
-            if os.path.isdir("%s/%s" %(self.cur_path,msg[-1])):
-                abs_path = os.path.abspath("%s/%s" %(self.cur_path,msg[-1]))
-                if abs_path.startswith(self.home_path):#need to make user can only access to the home path level
-                    self.cur_path = abs_path
-                    relative_path = self.cur_path.split(self.home_path)[-1]
-                    switch_res = "switch_dir::ok::%s" % relative_path
-                else:
-                    switch_res = "switch_dir::error::target dir doesn't exist"
-            else:
-                switch_res = "switch_dir::error::target dir doesn't exist"
-        else:
-            switch_res = "switch_dir::error::Error:wrong command usage."
-        self.request.send(switch_res)
+        pass
+    def delete(self,msg):
+        pass
 
 if __name__ == "__main__":
-    HOST, PORT = "0.0.0.0", 9000
-
+    
     # Create the server, binding to localhost on port 9999
-    server = SocketServer.ThreadingTCPServer((HOST, PORT), MyTCPHandler)
-
+    server = socketserver.ThreadingTCPServer(("localhost", 9002), MyTCPHandler)
     # Activate the server; this will keep running until you
     # interrupt the program with Ctrl-C
     server.serve_forever()

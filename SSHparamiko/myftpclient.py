@@ -56,33 +56,34 @@ class Client(object):
         # if self.auth():
         self.interactive()
 
-    def auth(self):
-        retry_count = 0
-        while retry_count < 3:
-            username = input("username:").strip()
-            if len(username) == 0:continue
-            passwd = getpass.getpass()
-            auth_str = "ftp_authentication|%s|%s" %(username,passwd)
+    # def auth(self):
+    #     retry_count = 0
+    #     while retry_count < 3:
+    #         username = input("username:").strip()
+    #         if len(username) == 0:continue
+    #         passwd = getpass.getpass()
+    #         auth_str = "ftp_authentication|%s|%s" %(username,passwd)
 
-            self.sock.send(auth_str)
-            auth_feedback = self.sock.recv(1024)
+    #         self.sock.send(auth_str)
+    #         auth_feedback = self.sock.recv(1024)
 
-            if auth_feedback == "ftp_authentication::success":
-                print("\033[32;1mAuthentication Passed!\033[0m")
-                self.username  = username
-                self.cur_path = username
-                return True
-            else:
-                print("\033[31;1mWrong username or password\033[0m")
-                retry_count +=1
-        else:
-            print("\033[31;1mToo many attempts,exit!\033[0m")
+    #         if auth_feedback == "ftp_authentication::success":
+    #             print("\033[32;1mAuthentication Passed!\033[0m")
+    #             self.username  = username
+    #             self.cur_path = username
+    #             return True
+    #         else:
+    #             print("\033[31;1mWrong username or password\033[0m")
+    #             retry_count +=1
+    #     else:
+    #         print("\033[31;1mToo many attempts,exit!\033[0m")
 
     def interactive(self):
         '''allowcate task to different function according to msg type'''
         try:
-            while not self.exit_flag:
-                cmd = input("[\033[;32;1m%s:\033[0m%s]>>:" %(self.username,self.cur_path)).strip()
+            while True:
+                #cmd = input("[\033[;32;1m%s:\033[0m%s]>>:" %(self.username,self.cur_path)).strip()
+                cmd = input('>>:').strip()
                 if len(cmd) == 0:continue
                 cmd_parse = cmd.split()
                 msg_type = cmd_parse[0]
@@ -93,6 +94,7 @@ class Client(object):
                     func(cmd_parse)
                 else:
                     print("Invalid instruction,type [help] to see available cmd list")
+
         except KeyboardInterrupt:
             self.exit('exit')
         except EOFError:
@@ -131,7 +133,8 @@ class Client(object):
     def get_file(self,msg):
         
         filename = msg[1]
-        self.sock.send(filename.encode())
+        send_msg = msg[0] + ' ' + msg[1]
+        self.sock.send(send_msg.encode())
         server_respond = self.sock.recv(1024).decode()
         
         if server_respond == "error" :
@@ -225,4 +228,4 @@ class Client(object):
 
 if __name__ == "__main__":
     #Host,Port = 'localhost', 9000
-    s = Client('localhost', 9997)
+    s = Client('localhost', 9002)
