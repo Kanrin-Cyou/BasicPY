@@ -22,9 +22,10 @@ while True:
             print('client is disconnected')
             break
         
-        cmd,filename = data.decode().split()
+        filename = data.decode()
         
         if os.path.isfile(filename):
+            
             f = open(filename,'rb')
             #m = hashlib.md5()
             file_size = os.stat(filename).st_size
@@ -43,6 +44,7 @@ while True:
             print('Reply Done') 
 
         else:
-            conn.send("file[%s] doesn't exist"%filename)
+            err_msg="error"
+            conn.send(err_msg.encode())
 
 server.close()

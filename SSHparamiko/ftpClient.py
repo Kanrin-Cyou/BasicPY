@@ -1,15 +1,9 @@
 #_*_coding:utf-8_*_
 __author__ = 'jieli'
 
-
 import socket
 import sys,os
 import getpass
-
-
-
-
-
 
 class Client(object):
 
@@ -111,11 +105,13 @@ class Client(object):
             if os.path.isfile(msg[1]):
 
                 file_size = os.path.getsize(msg[1])
+                
                 instruction_msg = "file_transfer|put|send_ready|%s|%s" %(msg[1],file_size)
                 self.sock.send(instruction_msg)
                 feedback = self.sock.recv(1024)
                 print '==>',feedback
                 progress_percent = 0
+                
                 if feedback.startswith("file_transfer::put_file::recv_ready"):
                     f = file(msg[1], "rb")
                     sent_size = 0
@@ -139,6 +135,7 @@ class Client(object):
 
             else:
                 print "\033[31;1mFile %s doesn't exist on local disk\033[0m" % msg[1]
+    
     def get_file(self,msg):
         if len(msg) == 2: # get remote_filename
             msg = "file_transfer|get|%s" % msg[1]
@@ -167,6 +164,7 @@ class Client(object):
 
             else:#file doesn't exist on remote or sth else went wrong.
                 print '\033[31;1m%s\033[0m' %feedback
+                
     def show_progress(self,total,finished,percent):
 
         progress_mark = "=" * (percent/2)
