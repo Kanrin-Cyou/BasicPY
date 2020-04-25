@@ -31,33 +31,32 @@ class Client(object):
         #     socket.SOCK_RDM  #是一种可靠的UDP形式，即保证交付数据报但不保证顺序。
         #              SOCK_RAM用来提供对原始协议的低级访问，在需要执行某些特殊操作时使用，如发送ICMP报文。
         #              SOCK_RAM通常仅限于高级用户或管理员运行的程序使用。
-
+        self.status = False
         self.sock.connect((host,port))
         self.exit_flag = False
-        # if self.auth():
-        self.interactive()
+        
+        if self.auth():
+            self.interactive()
 
-    # def auth(self):
-    #     retry_count = 0
-    #     while retry_count < 3:
-    #         username = input("username:").strip()
-    #         if len(username) == 0:continue
-    #         passwd = getpass.getpass()
-    #         auth_str = "ftp_authentication|%s|%s" %(username,passwd)
-
-    #         self.sock.send(auth_str)
-    #         auth_feedback = self.sock.recv(1024)
-
-    #         if auth_feedback == "ftp_authentication::success":
-    #             print("\033[32;1mAuthentication Passed!\033[0m")
-    #             self.username  = username
-    #             self.cur_path = username
-    #             return True
-    #         else:
-    #             print("\033[31;1mWrong username or password\033[0m")
-    #             retry_count +=1
-    #     else:
-    #         print("\033[31;1mToo many attempts,exit!\033[0m")
+    def auth(self):
+        while not self.status:
+            #cmd = input("[\033[;32;1m%s:\033[0m%s]>>:" %(self.username,self.cur_path)).strip()
+            msg = input('>>name pwd:').strip()
+            print(msg)
+            self.sock.send(msg.encode())
+            self.sock.recv(1024)
+            self.sock.send(b'ready')
+            msg = self.sock.recv(1024)
+            self.sock.send(b'recevied')
+            
+            msg = msg.decode()
+            if msg == 'Welcome':
+                print(msg)
+                self.status = True
+            else:
+                print(msg)
+        return True
+        
 
     def interactive(self):
         '''allowcate task to different function according to msg type'''

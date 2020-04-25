@@ -12,6 +12,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
     """
 
     func_dic = {
+            'auth': 'authentication',
             'get' : 'get_file',
             'put' : 'put_file',
             'exit': 'exit',
@@ -21,24 +22,48 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
         }
 
     exit_flag = False
+    status = False
 
     def handle(self):
         # self.request is the TCP socket connected to the client
 
         while not self.exit_flag:
             
-            msg = self.request.recv(1024).decode()
-            print(msg)
-            cmd_parse = msg.split()
-            msg_type = cmd_parse[0]
+            while not self.status:
+                msg = self.request.recv(1024).decode()
+                print(msg)
+                cmd_parse = msg.split()
+                self.authentication(cmd_parse)
 
-            #print 'msg_type::',msg_type
-            if msg_type in self.func_dic:
-                func = getattr(self,self.func_dic[msg_type])
-                func(cmd_parse)
             else:
-                msg = "Invalid instruction,type [help] to see available cmd list"
+                msg = self.request.recv(1024).decode()
+                print(msg)
+                cmd_parse = msg.split()
+                msg_type = cmd_parse[0]
+
+                #print 'msg_type::',msg_type
+                if msg_type in self.func_dic:
+                    func = getattr(self,self.func_dic[msg_type])
+                    func(cmd_parse)
+                else:
+                    msg = "Invalid instruction,type [help] to see available cmd list"
+                    self.std_send(msg)
+
+    def authentication(self,msg):
+        if msg[0] in account.accounts:
+            if msg[1] == account.accounts[msg[0]]['passwd']:
+                self.login_user = msg[0]
+                self.folder = account.accounts[msg[0]]['home']
+                self.status = True
+                msg = "Welcome"
                 self.std_send(msg)
+            else:
+                msg = "Wrong Password"
+                self.std_send(msg)    
+
+        else:
+            msg = "The Account doesn't exist, Please consult with your manager"
+            self.std_send(msg)    
 
     def std_send(self,msg,isfile=False):
 
