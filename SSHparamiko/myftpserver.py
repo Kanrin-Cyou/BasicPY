@@ -1,6 +1,6 @@
 import socketserver
 import account
-import os,sys
+import os,sys,time
 
 class MyTCPHandler(socketserver.BaseRequestHandler):
     """
@@ -17,7 +17,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
             'exit': 'exit',
             'ls'  : 'list_file',
             'cd'  :  'switch_dir',
-            'del' :  'delete'
+            'del' :  'delete',
         }
 
     exit_flag = False
@@ -71,28 +71,79 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
             f.close()
         print('Sent')
 
-    def std_recv(self):
+    def std_recv(self,msg,isfile=False):
         #need to send cmd before this function
-        self.request.recv(1024)
-        self.request.send(b'ready')
-        print(self.request.recv(1024).decode())
+        size = self.request.recv(1024)
+        filename = msg
+        file_total_size = int(size)
+        received_size = 0
+
+        n=3
+
+        if os.path.isfile(filename):
+            name = filename.rsplit('.',1)
+            filetype = '.' + name[1]
+            filename = name[0] + '[2]' + filetype
+            while os.path.isfile(filename):
+                name = filename.rsplit('[',1)
+                filename = name[0] + '[%i]'%n + filetype
+                n += 1
+        
+        print(filename)
+
+        f = open(filename,'wb')
+
+        self.request.send(b'ready to recv file')
+
+        while received_size < file_total_size:
+            if file_total_size - received_size > 1024: 
+                size = 1024
+            else: 
+                size = file_total_size - received_size
+            data = self.request.recv(size)
+            received_size += len(data)
+            f.write(data)
+
+        self.request.send(b'Received')
+        f.close()
+        print('Received')
 
     def get_file(self,msg):
         filename = msg[1]
-        print(filename)
         if os.path.isfile(filename):
             self.std_send(filename,True)
         else:
             self.request.send(b'error')
 
     def put_file(self,msg):
-        pass
+        filename = msg[1]
+        self.std_recv(filename,True)
+
     def list_file(self,msg):
-        pass
+        cmd = 'ls'
+        cmd_res = os.popen(cmd).read()
+        self.std_send(cmd_res)
+
     def switch_dir(self,msg):
-        pass
+
+        cmd = 'cd'
+        os.popen(cmd)
+        time.sleep(0.1)
+        cmd_res = os.popen('ls').read()
+        self.std_send(cmd_res)
+
     def delete(self,msg):
-        pass
+        filename = msg[1]
+        print(filename)
+        if os.path.isfile(filename):
+            cmd = 'rm ' + msg[1]
+            print(cmd)
+            os.popen(cmd)
+            time.sleep(0.1)
+            cmd_res = os.popen('ls').read()
+            self.std_send(cmd_res)
+        else:
+            self.std_send("The file doesn't exist in current disk.")
 
 if __name__ == "__main__":
     

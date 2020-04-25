@@ -1,22 +1,3 @@
-# 作业：开发一个支持多用户在线的FTP程序
-# 要求：
-# 1. 用户加密认证
-
-# 2. 允许同时多用户登录
-
-# 3. 每个用户有自己的家目录 ，且只能访问自己的家目录
-
-# 4. 对用户进行磁盘配额，每个用户的可用空间不同
-
-# 5. 允许用户在ftp server上随意切换目录
-
-# 6. 允许用户查看当前目录下文件
-
-# 7. 允许上传和下载文件，保证文件一致性  put/get
-# 8. 文件传输过程中显示进度条 #progress
-
-# 9. 附加功能：支持文件的断点续传
-
 import socket
 import sys,os
 import getpass
@@ -101,9 +82,13 @@ class Client(object):
             self.exit('exit')
 
     def put_file(self,msg):
+        
         filename = msg[1]
         
         if os.path.isfile(filename):
+            
+            send = msg[0]+' '+filename
+            self.sock.send(send.encode())    
 
             f = open(filename,'rb')
             file_size = os.stat(filename).st_size
@@ -145,7 +130,19 @@ class Client(object):
             
             file_total_size = int(server_respond)
             received_size = 0
-            f = open(filename + '.new','wb')
+
+            n=3
+            if os.path.isfile(filename):
+                name = filename.rsplit('.',1)
+                filetype = '.' + name[1]
+                filename = name[0] + '[2]' + filetype
+                while os.path.isfile(filename):
+                    name = filename.rsplit('[',1)
+                    filename = name[0] + '[%i]'%n + filetype
+                    n += 1
+            
+            f = open(filename,'wb')
+
             self.sock.send(b'ready to recv file')
 
             while received_size < file_total_size:
@@ -188,6 +185,8 @@ class Client(object):
             received_size += size
             print(data.decode())
 
+        self.sock.send(b'received')
+
     def switch_dir(self,msg):
         #print '--swtich dir:',msg
         self.sock.send("cd".encode())
@@ -200,7 +199,7 @@ class Client(object):
 
     def delete(self,msg):
         if len(msg) > 1:
-            self.sock.send(('rm'+' '+msg[1]).encode())
+            self.sock.send(('del'+' '+msg[1]).encode())
             self.std_recv()
         else:
             print("\033[31;1mWrong command usage\033[0m")
@@ -213,7 +212,8 @@ class Client(object):
         self.sock.recv(1024)
         self.sock.send(b'ready')
         print(self.sock.recv(1024).decode())
-
+        self.sock.send(b'done')
+        
     def help(self,msg):
 
         print('''
