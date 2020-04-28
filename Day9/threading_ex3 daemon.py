@@ -19,7 +19,7 @@ for i in range(50):
 # for t in t_objs: #循环线程实例列表，等待所有线程执行完毕
 #     t.join()
 
-time.sleep(2)
+#time.sleep(2)
 print("----------all threads has finished...",threading.current_thread(),threading.active_count())
 print("cost:",time.time() - start_time)
 # run("t1")

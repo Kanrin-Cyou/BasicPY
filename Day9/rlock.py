@@ -34,7 +34,7 @@ def run3():
 
 num, num2 = 0, 0
 lock = threading.RLock()
-for i in range(1):
+for i in range(10):
     t = threading.Thread(target=run3)
     t.start()
 

@@ -1,17 +1,19 @@
 __author__ = "Alex Li"
 
+# python3 自动加锁了
+
 import threading
 import time
 
 def run(n):
-    lock.acquire()
-    global  num
-    num +=1
+    #lock.acquire()
+    global  num 
+    num += 1
     time.sleep(1)
-    lock.release()
+    #lock.release()
 
 
-lock = threading.Lock()
+#lock = threading.Lock()
 num = 0
 t_objs = [] #存线程实例
 for i in range(50):
